@@ -102,18 +102,20 @@ containers:
   - VLLM_NO_USAGE_STATS: '1'
   - HF_HUB_OFFLINE: '1'
   - TRANSFORMERS_OFFLINE: '1'
+  - PYTHONUNBUFFERED: '1'
   tmpfs:
     /tmp: size=512m,mode=1777,exec
     /root: size=2g,mode=0700,exec
   healthcheck:
     test:
     - CMD-SHELL
-    - curl -sf http://localhost:8001/health || { tail -c 4096 /tmp/public-startup.log;
-      exit 1; }
+    - for i in $(seq 1 120); do if curl --max-time 3 -sf http://localhost:8001/health;
+      then exit 0; fi; sleep 15; done; tail -c 12000 /tmp/public-startup.log; exit
+      1
     interval: 30s
-    timeout: 5s
+    timeout: 31m
     start_period: 30m
-    retries: 3
+    retries: 1
   networks:
   - model
   entrypoint:

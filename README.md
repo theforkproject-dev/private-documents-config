@@ -13,3 +13,7 @@ Updates must STOP the one existing H200 instance, wait until stopped, then deplo
 The initial32CPU/128GiB/two-model-disk layout was API-valid but absent from published platform endorsements; fresh attestation failed closed. This release selects16CPU/128GiB/oneGPU/six total disks, matching the published medium_3d_new shape. A dedicated1GB compatibility disk is attached solely to match that endorsed hardware layout. It remains locked, unformatted and unmounted in every application container. It stores neither code nor document content, and grants no worker/admin authority. This is actual hardware-layout selection, not a measurement override; fresh verification still must pass.
 
 Temporary Gemma startup-log health diagnostics are enabled for PUBLIC/SYNTHETIC qualification only. No private inputs until these are removed and acceptance passes. Model, image, BF16 precision and model arguments remain unchanged.
+
+## v0.0.3 readiness qualification
+
+v0.0.2 native Perimeter verified fresh V3 attestation and reached the shim over its key-bound transport. The layout correction worked. Gemma readiness still failed after85s despite the declared30m start_period. Only sidecar connection-refused logs were captured, not a proven child crash. v0.0.3 preserves the same real HTTP health criterion but waits inside a bounded30-minute health probe; it never returns healthy before the real endpoint succeeds. Startup stdout is unbuffered for this public-only qualification. No model/parser/image/security downgrade.
