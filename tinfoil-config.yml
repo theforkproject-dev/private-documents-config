@@ -1,0 +1,179 @@
+cvm-version: 0.14.17
+cpus: 32
+memory: 131072
+gpus: 1
+models:
+- name: gemma-4-31b
+  repo: google/gemma-4-31B-it@842da3794eaa0b77d5f08bae87a17459d91ff475
+  mpk: cda2f261f72d80a847eb6fabea1f9949bf14ce5bb323808a8e2e4a9f09018357_62578692096_827ad0bf-94a4-5620-9569-8f3a34cc5154
+- name: gemma-4-31b-assistant
+  repo: google/gemma-4-31B-it-assistant@34ef9f029d1c52bccac2def222523af32f3ccd0f
+  mpk: 2d92158d05e976de143bd05ff87977c73523ce6adeff1b559ebf32a2d230d634_971251712_27ee073f-136c-5855-a1a3-1fdc293ec0bb
+containers:
+- name: gateway
+  image: ghcr.io/theforkproject-dev/private-documents-service@sha256:d41cf1a347329c7d9af9dbae38969ba4f40b80ad6c889d0b467ecadd6e09d2c6
+  command:
+  - /usr/local/bin/document-gateway
+  user: 65533:65532
+  restart: always
+  networks:
+  - document
+  - model
+  ipc: none
+  read_only: true
+  memory: 2g
+  cpus: 2
+  pids_limit: 128
+  env:
+  - DOCUMENT_PRINCIPALS: '[{"ID":"docs-build-b-20261125","Hash":"a9fdec70da809086c3ff6ed39c018219c134e793a5a7dfd67e397e6c0f3e7ccb"}]'
+- name: doc-upload
+  image: ghcr.io/theforkproject-dev/private-documents-service@sha256:d41cf1a347329c7d9af9dbae38969ba4f40b80ad6c889d0b467ecadd6e09d2c6
+  user: 65533:65532
+  restart: always
+  networks:
+  - document
+  ipc: none
+  read_only: true
+  memory: 6g
+  pids_limit: 256
+  volumes:
+  - parser-socket:/run/docparser
+  env:
+  - VLM_MODEL: gemma4-31b
+  - ROUTER_PORT: '5000'
+  - PARSER_SOCKET: /run/docparser/parser.sock
+  - PARSER_MAX_OUTPUT_MB: '256'
+  - MAX_FILES: '2'
+  - MAX_PARALLEL: '8'
+  - MAX_ACTIVE_REQUESTS: '4'
+  - MAX_QUEUED_REQUESTS: '16'
+  healthcheck:
+    test:
+    - CMD
+    - /usr/local/bin/healthcheck
+    - http://localhost:5000/health
+    interval: 30s
+    timeout: 5s
+    start_period: 30s
+- name: doc-parser
+  image: ghcr.io/tinfoilsh/confidential-doc-upload@sha256:4637a6e5358f8ac80478acf516bf705971b1673d1e2aa022dfe6d66a3d8ff487
+  user: 65532:65532
+  command:
+  - /usr/local/bin/parserd
+  restart: always
+  ipc: none
+  read_only: true
+  memory: 4g
+  cpus: 4
+  pids_limit: 128
+  volumes:
+  - parser-socket:/run/docparser
+  env:
+  - PARSER_SOCKET: /run/docparser/parser.sock
+  - PARSER_TIMEOUT_SECONDS: '120'
+  - PARSER_MEMORY_LIMIT_MB: '1536'
+  - PARSER_MAX_OUTPUT_MB: '256'
+  - PARSER_WORKERS: '2'
+  healthcheck:
+    test:
+    - CMD
+    - /usr/local/bin/healthcheck
+    - --unix-socket=/run/docparser/parser.sock
+    - http://parser/health
+    interval: 30s
+    timeout: 5s
+    start_period: 30s
+- name: gemma4-31b
+  models:
+  - gemma-4-31b
+  - gemma-4-31b-assistant
+  image: ghcr.io/tinfoilsh/confidential-gemma4-31b@sha256:9e1ccd914c09507914a1368b386db91711b880015acad2eb0e19f276d2ad388f
+  runtime: nvidia
+  gpus: all
+  memory: 64g
+  shm_size: 16g
+  restart: always
+  env:
+  - PYTORCH_CUDA_ALLOC_CONF: expandable_segments:True
+  - VLLM_USE_V2_MODEL_RUNNER: '1'
+  - VLLM_DISABLE_UVA: '1'
+  - VLLM_GEMMA4_FIRST_RMS_R8192: '1'
+  - VLLM_DISABLE_STRUCTURED_OUTPUT_REGEX: '1'
+  - VLLM_NO_USAGE_STATS: '1'
+  - HF_HUB_OFFLINE: '1'
+  - TRANSFORMERS_OFFLINE: '1'
+  command:
+  - --model
+  - /tinfoil/models/gemma-4-31b
+  - --tensor-parallel-size
+  - '1'
+  - --gpu-memory-utilization
+  - '0.90'
+  - --served-model-name
+  - gemma4-31b
+  - --enable-auto-tool-choice
+  - --enable-prompt-tokens-details
+  - --enable-force-include-usage
+  - --tool-call-parser
+  - gemma4
+  - --reasoning-parser
+  - gemma4
+  - --chat-template
+  - examples/tool_chat_template_gemma4.jinja
+  - --scheduling-policy
+  - priority
+  - --max-num-seqs
+  - '8'
+  - --allowed-media-domains
+  - disabled.invalid
+  - --limit-mm-per-prompt
+  - '{"video":0}'
+  - --speculative-config
+  - '{"method":"mtp","model":"/tinfoil/models/gemma-4-31b-assistant","draft_sample_method":"probabilistic","rejection_sample_method":"standard"}'
+  - --dtype
+  - bfloat16
+  - --max-model-len
+  - '262144'
+  - --override-generation-config
+  - '{"max_new_tokens":32768}'
+  - --max-num-batched-tokens
+  - '8192'
+  - --long-prefill-token-threshold
+  - '2048'
+  - --seed
+  - '0'
+  - --no-enable-prefix-caching
+  - --enable-chunked-prefill
+  - --async-scheduling
+  - --trust-request-mm-kwargs
+  - --port
+  - '8001'
+  - --disable-log-requests
+  - --mm-processor-cache-gb
+  - '0'
+  tmpfs:
+    /tmp: size=512m,mode=1777,exec
+    /root: size=2g,mode=0700,exec
+  healthcheck:
+    test:
+    - CMD
+    - curl
+    - -sf
+    - http://localhost:8001/health
+    interval: 30s
+    timeout: 5s
+    start_period: 30m
+  networks:
+  - model
+networks:
+  document:
+    egress: closed
+  model:
+    egress: closed
+shim:
+  upstream-container: gateway
+  upstream-port: 8080
+  authenticated: false
+  paths:
+  - /health
+  - /v1/convert/file
