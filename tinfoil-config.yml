@@ -90,7 +90,7 @@ containers:
   image: ghcr.io/tinfoilsh/confidential-gemma4-31b@sha256:9e1ccd914c09507914a1368b386db91711b880015acad2eb0e19f276d2ad388f
   runtime: nvidia
   gpus: all
-  memory: 64g
+  memory: 100g
   shm_size: 16g
   restart: always
   env:
@@ -109,13 +109,14 @@ containers:
   healthcheck:
     test:
     - CMD-SHELL
-    - for i in $(seq 1 120); do if curl --max-time 3 -sf http://localhost:8001/health;
-      then exit 0; fi; sleep 15; done; tail -c 12000 /tmp/public-startup.log; exit
-      1
+    - curl --max-time 3 -sf http://localhost:8001/health && exit 0; echo PUBLIC_STARTUP_DIAGNOSTIC;
+      cat /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.current /sys/fs/cgroup/memory.peak
+      2>/dev/null; head -c 1000 /tmp/public-startup.log; tail -c 2500 /tmp/public-startup.log;
+      exit 1
     interval: 30s
-    timeout: 31m
+    timeout: 10s
     start_period: 30m
-    retries: 1
+    retries: 60
   networks:
   - model
   entrypoint:
