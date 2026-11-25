@@ -1,0 +1,48 @@
+{
+  "private_documents": {
+    "title": "Private Documents (own H200)",
+    "catalog": {
+      "group": "api",
+      "actions": {
+        "documents.convert": {
+          "title": "Convert documents using own H200"
+        }
+      },
+      "connection": {
+        "tinfoil": {
+          "enclave": "private-documents-h200.amotivv.containers.tinfoil.dev",
+          "repo": "theforkproject-dev/private-documents-config@v0.0.1"
+        }
+      },
+      "fields": [
+        {
+          "key": "TINFOIL_API_KEY",
+          "label": "Private document service credential (not a Tinfoil inference key)",
+          "credential": true,
+          "secret": true
+        }
+      ]
+    },
+    "http": {
+      "slots": true,
+      "operations": {
+        "documents.convert": {
+          "action": "documents.convert",
+          "effects": [
+            "generate",
+            "send"
+          ],
+          "method": "POST",
+          "origin": "https://private-documents-h200.amotivv.containers.tinfoil.dev",
+          "path": "/v1/convert/file",
+          "body": "any",
+          "params": [
+            "mode"
+          ],
+          "scope": {},
+          "sends": "connection"
+        }
+      }
+    }
+  }
+}
