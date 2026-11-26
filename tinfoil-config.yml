@@ -11,7 +11,7 @@ models:
   mpk: 2d92158d05e976de143bd05ff87977c73523ce6adeff1b559ebf32a2d230d634_971251712_27ee073f-136c-5855-a1a3-1fdc293ec0bb
 containers:
 - name: gateway
-  image: ghcr.io/theforkproject-dev/private-documents-service@sha256:94877cba41ec5abd5663378fe2dc2985d80428aef8cd132174bfd3898db6bc4f
+  image: ghcr.io/theforkproject-dev/private-documents-service@sha256:890d9aa4adb0094867ddceb23f405184c2eac4532c79b4712ec4e2c143c0bae3
   command:
   - /usr/local/bin/document-gateway
   user: 65533:65532
@@ -27,7 +27,7 @@ containers:
   env:
   - DOCUMENT_PRINCIPALS: '[{"ID":"docs-build-b-20261125","Hash":"a9fdec70da809086c3ff6ed39c018219c134e793a5a7dfd67e397e6c0f3e7ccb"}]'
 - name: doc-upload
-  image: ghcr.io/theforkproject-dev/private-documents-service@sha256:94877cba41ec5abd5663378fe2dc2985d80428aef8cd132174bfd3898db6bc4f
+  image: ghcr.io/theforkproject-dev/private-documents-service@sha256:890d9aa4adb0094867ddceb23f405184c2eac4532c79b4712ec4e2c143c0bae3
   user: 65533:65532
   restart: always
   networks:
