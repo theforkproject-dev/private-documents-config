@@ -134,9 +134,10 @@ containers:
     --dtype bfloat16 --max-model-len 262144 --override-generation-config '{"max_new_tokens":32768}'
     --max-num-batched-tokens 8192 --long-prefill-token-threshold 2048 --seed 0 --no-enable-prefix-caching
     --enable-chunked-prefill --async-scheduling --trust-request-mm-kwargs --port 8001
-    --disable-log-requests --mm-processor-cache-gb 0 --attention-backend FLASH_ATTN
-    --spec-tokens 4 > /tmp/public-startup.log 2>&1 & child=$!; echo "$child" > /tmp/vllm.pid;
-    wait "$child"; code=$?; echo "$code" > /tmp/vllm.exit; sleep 1800; exit "$code"
+    --no-enable-log-requests --no-enable-log-outputs --mm-processor-cache-gb 0 --attention-backend
+    FLASH_ATTN --spec-tokens 4 > /tmp/public-startup.log 2>&1 & child=$!; echo "$child"
+    > /tmp/vllm.pid; wait "$child"; code=$?; echo "$code" > /tmp/vllm.exit; sleep
+    1800; exit "$code"
 networks:
   document:
     egress: closed
