@@ -102,42 +102,77 @@ containers:
   - VLLM_NO_USAGE_STATS: '1'
   - HF_HUB_OFFLINE: '1'
   - TRANSFORMERS_OFFLINE: '1'
-  - PYTHONUNBUFFERED: '1'
   tmpfs:
     /tmp: size=512m,mode=1777,exec
     /root: size=2g,mode=0700,exec
   healthcheck:
     test:
     - CMD-SHELL
-    - for i in $(seq 1 120); do if curl --max-time 3 -sf http://localhost:8001/health;
-      then exit 0; fi; if [ -f /tmp/vllm.pid ] && ! kill -0 $(cat /tmp/vllm.pid) 2>/dev/null;
-      then cat /tmp/vllm.exit 2>/dev/null; tail -c 3400 /tmp/public-startup.log; exit
-      1; fi; sleep 10; done; cat /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.current
-      2>/dev/null; cat /tmp/vllm.exit 2>/dev/null; tail -c 3400 /tmp/public-startup.log;
-      exit 1
+    - for i in $(seq 1 180); do if curl --max-time 3 -sf http://localhost:8001/health;
+      then exit 0; fi; sleep 10; done; exit 1
     interval: 30s
-    timeout: 21m
+    timeout: 31m
     start_period: 30m
     retries: 1
   networks:
   - model
   entrypoint:
-  - /bin/bash
-  - -lc
+  - vllm
+  - serve
   command:
-  - vllm serve --model /tinfoil/models/gemma-4-31b --tensor-parallel-size 1 --gpu-memory-utilization
-    0.90 --served-model-name gemma4-31b --enable-auto-tool-choice --enable-prompt-tokens-details
-    --enable-force-include-usage --tool-call-parser gemma4 --reasoning-parser gemma4
-    --chat-template examples/tool_chat_template_gemma4.jinja --scheduling-policy priority
-    --max-num-seqs 8 --allowed-media-domains disabled.invalid --limit-mm-per-prompt
-    '{"video":0}' --speculative-config '{"method":"mtp","model":"/tinfoil/models/gemma-4-31b-assistant","draft_sample_method":"probabilistic","rejection_sample_method":"standard"}'
-    --dtype bfloat16 --max-model-len 262144 --override-generation-config '{"max_new_tokens":32768}'
-    --max-num-batched-tokens 8192 --long-prefill-token-threshold 2048 --seed 0 --no-enable-prefix-caching
-    --enable-chunked-prefill --async-scheduling --trust-request-mm-kwargs --port 8001
-    --no-enable-log-requests --no-enable-log-outputs --mm-processor-cache-gb 0 --attention-backend
-    FLASH_ATTN --spec-tokens 4 > /tmp/public-startup.log 2>&1 & child=$!; echo "$child"
-    > /tmp/vllm.pid; wait "$child"; code=$?; echo "$code" > /tmp/vllm.exit; sleep
-    1800; exit "$code"
+  - --model
+  - /tinfoil/models/gemma-4-31b
+  - --tensor-parallel-size
+  - '1'
+  - --gpu-memory-utilization
+  - '0.90'
+  - --served-model-name
+  - gemma4-31b
+  - --enable-auto-tool-choice
+  - --enable-prompt-tokens-details
+  - --enable-force-include-usage
+  - --tool-call-parser
+  - gemma4
+  - --reasoning-parser
+  - gemma4
+  - --chat-template
+  - examples/tool_chat_template_gemma4.jinja
+  - --scheduling-policy
+  - priority
+  - --max-num-seqs
+  - '8'
+  - --allowed-media-domains
+  - disabled.invalid
+  - --limit-mm-per-prompt
+  - '{"video":0}'
+  - --speculative-config
+  - '{"method":"mtp","model":"/tinfoil/models/gemma-4-31b-assistant","draft_sample_method":"probabilistic","rejection_sample_method":"standard"}'
+  - --dtype
+  - bfloat16
+  - --max-model-len
+  - '262144'
+  - --override-generation-config
+  - '{"max_new_tokens":32768}'
+  - --max-num-batched-tokens
+  - '8192'
+  - --long-prefill-token-threshold
+  - '2048'
+  - --seed
+  - '0'
+  - --no-enable-prefix-caching
+  - --enable-chunked-prefill
+  - --async-scheduling
+  - --trust-request-mm-kwargs
+  - --port
+  - '8001'
+  - --no-enable-log-requests
+  - --no-enable-log-outputs
+  - --mm-processor-cache-gb
+  - '0'
+  - --attention-backend
+  - FLASH_ATTN
+  - --spec-tokens
+  - '4'
 networks:
   document:
     egress: closed
