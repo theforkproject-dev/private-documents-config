@@ -111,9 +111,10 @@ containers:
     - CMD-SHELL
     - for i in $(seq 1 120); do if curl --max-time 3 -sf http://localhost:8001/health;
       then exit 0; fi; if [ -f /tmp/vllm.pid ] && ! kill -0 $(cat /tmp/vllm.pid) 2>/dev/null;
-      then tail -c 12000 /tmp/public-startup.log; exit 1; fi; sleep 10; done; cat
-      /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.current 2>/dev/null; tail
-      -c 12000 /tmp/public-startup.log; exit 1
+      then cat /tmp/vllm.exit 2>/dev/null; tail -c 3400 /tmp/public-startup.log; exit
+      1; fi; sleep 10; done; cat /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.current
+      2>/dev/null; cat /tmp/vllm.exit 2>/dev/null; tail -c 3400 /tmp/public-startup.log;
+      exit 1
     interval: 30s
     timeout: 21m
     start_period: 30m
@@ -135,7 +136,7 @@ containers:
     --enable-chunked-prefill --async-scheduling --trust-request-mm-kwargs --port 8001
     --disable-log-requests --mm-processor-cache-gb 0 --attention-backend FLASH_ATTN
     --spec-tokens 4 > /tmp/public-startup.log 2>&1 & child=$!; echo "$child" > /tmp/vllm.pid;
-    wait "$child"
+    wait "$child"; code=$?; echo "$code" > /tmp/vllm.exit; sleep 1800; exit "$code"
 networks:
   document:
     egress: closed
